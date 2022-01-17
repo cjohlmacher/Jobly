@@ -36,14 +36,14 @@ async function commonBeforeAll() {
         description: "Desc3",
         logoUrl: "http://c3.img",
       });
-  await Job.create(
+  const job1 = await Job.create(
     {
       title: 'j1',
       salary: 1,
       equity: 0.1,
       companyHandle: 'c1'
     });
-  await Job.create(
+  const job2 = await Job.create(
     {
       title: 'j2',
       salary: 2,
@@ -97,6 +97,8 @@ async function commonBeforeAll() {
     password: "password4",
     isAdmin: true,
   });
+  await User.apply("u1",job1.id);
+  await User.apply("u1",job2.id);
 }
 
 async function commonBeforeEach() {

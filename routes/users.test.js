@@ -142,6 +142,81 @@ describe("POST /users", function () {
   });
 });
 
+/************************************** POST /users/:username/jobs/:id */
+
+describe("POST /users/:username/jobs/:id", function () {
+  test("works for admins: apply", async function () {
+    const newJob = {
+      title: 'new',
+      salary: 100,
+      equity: 0.5,
+      companyHandle: 'c1'
+    };
+    const jobRes = await request(app)
+      .post('/jobs')
+      .send(newJob)
+      .set("authorization", `Bearer ${u4Token}`);;
+    const jobId = jobRes.body.job.id;
+    const resp = await request(app)
+        .post(`/users/u1/jobs/${jobId}`)
+        .set("authorization", `Bearer ${u4Token}`);
+    expect(resp.statusCode).toEqual(201);
+    expect(resp.body).toEqual({ applied: jobId });
+  });
+
+  test("works for owner: apply", async function () {
+    const newJob = {
+      title: 'new',
+      salary: 100,
+      equity: 0.5,
+      companyHandle: 'c1'
+    };
+    const jobRes = await request(app)
+      .post('/jobs')
+      .send(newJob)
+      .set("authorization", `Bearer ${u4Token}`);
+    const jobId = jobRes.body.job.id;
+    const resp = await request(app)
+        .post(`/users/u1/jobs/${jobId}`)
+        .set("authorization", `Bearer ${u1Token}`);
+    expect(resp.statusCode).toEqual(201);
+    expect(resp.body).toEqual({ applied: jobId });
+  });
+
+  test("unauth for non-admin non-owner user: apply", async function () {
+    const jobRes = await request(app).get('/jobs');
+    const jobId = jobRes.body.jobs[0].id;
+    const resp = await request(app)
+        .post(`/users/u3/jobs/${jobId}`)
+        .set("authorization", `Bearer ${u2Token}`);
+    expect(resp.statusCode).toEqual(401);
+  });
+
+  test("unauth for anon", async function () {
+    const jobRes = await request(app).get('/jobs');
+    const jobId = jobRes.body.jobs[0].id;
+    const resp = await request(app)
+        .post(`/users/u4/jobs/${jobId}`)
+    expect(resp.statusCode).toEqual(401);
+  });
+
+  test("bad request if invalid username", async function () {
+    const jobRes = await request(app).get('/jobs');
+    const jobId = jobRes.body.jobs[0].id;
+    const resp = await request(app)
+        .post(`/users/nope/jobs/${jobId}`)
+        .set("authorization", `Bearer ${u4Token}`);
+    expect(resp.statusCode).toEqual(400);
+  });
+
+  test("bad request if invalid job id", async function () {
+    const resp = await request(app)
+        .post(`/users/u1/jobs/0`)
+        .set("authorization", `Bearer ${u4Token}`);
+    expect(resp.statusCode).toEqual(400);
+  });
+});
+
 /************************************** GET /users */
 
 describe("GET /users", function () {
@@ -222,8 +297,10 @@ describe("GET /users/:username", function () {
         lastName: "U1L",
         email: "user1@user.com",
         isAdmin: false,
+        jobs: expect.any(Array)
       },
     });
+    expect(resp.body.user.jobs.length).toBe(2);
   });
 
   test("works for owner", async function () {
@@ -237,8 +314,10 @@ describe("GET /users/:username", function () {
         lastName: "U1L",
         email: "user1@user.com",
         isAdmin: false,
+        jobs: expect.any(Array)
       },
     });
+    expect(resp.body.user.jobs.length).toBe(2);
   });
 
   test("unauth for non-admin non-owner user", async function () {

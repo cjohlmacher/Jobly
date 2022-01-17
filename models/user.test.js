@@ -7,6 +7,7 @@ const {
 } = require("../expressError");
 const db = require("../db.js");
 const User = require("./user.js");
+const Job = require("./job");
 const {
   commonBeforeAll,
   commonBeforeEach,
@@ -132,7 +133,7 @@ describe("findAll", function () {
 /************************************** get */
 
 describe("get", function () {
-  test("works", async function () {
+  test("works with applications", async function () {
     let user = await User.get("u1");
     expect(user).toEqual({
       username: "u1",
@@ -140,7 +141,22 @@ describe("get", function () {
       lastName: "U1L",
       email: "u1@email.com",
       isAdmin: false,
+      jobs: expect.any(Array),
     });
+    expect(user.jobs.length).toEqual(2);
+  });
+
+  test("works with no applications", async function () {
+    let user = await User.get("u2");
+    expect(user).toEqual({
+      username: "u2",
+      firstName: "U2F",
+      lastName: "U2L",
+      email: "u2@email.com",
+      isAdmin: false,
+      jobs: expect.any(Array),
+    });
+    expect(user.jobs.length).toEqual(0);
   });
 
   test("not found if no such user", async function () {
@@ -149,6 +165,50 @@ describe("get", function () {
       fail();
     } catch (err) {
       expect(err instanceof NotFoundError).toBeTruthy();
+    }
+  });
+});
+
+/************************************** apply */
+
+describe("apply", function () {
+  test("works", async function () {
+    const job = await Job.create(
+      { 
+        title: 'j5', 
+        salary: 5, 
+        equity: 0.5, 
+        companyHandle: 'c1'
+      }
+    );
+    await User.apply("u1",job.id);
+    const res = await User.get("u1");
+    expect(res.jobs.length).toEqual(3);
+  });
+
+  test("not found if no such user", async function () {
+    const job = await Job.create(
+      { 
+        title: 'j5', 
+        salary: 5, 
+        equity: 0.5, 
+        companyHandle: 'c1'
+      }
+    );
+    try {
+      await User.apply("nope",job.id);
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
+    }
+  });
+
+  test("not found if no such job id", async function () {
+    try {
+      await User.apply("u1",0);
+      fail();
+    } catch (err) {
+      expect(err instanceof BadRequestError).toBeTruthy();
     }
   });
 });

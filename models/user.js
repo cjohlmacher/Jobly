@@ -3,6 +3,7 @@
 const db = require("../db");
 const bcrypt = require("bcrypt");
 const { sqlForPartialUpdate } = require("../helpers/sql");
+const Job = require('./job');
 const {
   NotFoundError,
   BadRequestError,
@@ -139,8 +140,48 @@ class User {
 
     if (!user) throw new NotFoundError(`No user: ${username}`);
 
+    const jobs = await db.query(
+      `SELECT id
+        FROM jobs
+        JOIN applications
+        ON applications.job_id = jobs.id
+        JOIN users
+        ON users.username = applications.username
+        WHERE users.username = $1`,[username]);
+    
+    user.jobs = Object.values(jobs.rows);
     return user;
   }
+
+  /** Add job application to user
+   * 
+   * 
+   * 
+  */
+
+  static async apply(username,jobId) {
+    try {
+        await User.get(username);
+    } catch(err) {
+        throw new BadRequestError(`No user: ${username}`) 
+    };
+    try {
+      await Job.get(jobId);
+    } catch(err) {
+        throw new BadRequestError(`No job: ${jobId}`) 
+    };
+    try {
+      const applicationRes = await db.query(
+      `INSERT INTO applications (username, job_id)
+        VALUES ('u1', $1)
+        RETURNING username, job_id`,[jobId]
+      );
+      const application = applicationRes.rows[0];
+      if (!application) throw new BadRequestError('Could not add application');
+    } catch(err) {
+      return next(err);
+    };
+  };
 
   /** Update user data with `data`.
    *
