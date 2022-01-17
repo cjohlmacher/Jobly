@@ -2,7 +2,7 @@
 
 const db = require("../db");
 const { BadRequestError, NotFoundError } = require("../expressError");
-const { sqlForPartialUpdate, sqlForFilter } = require("../helpers/sql");
+const { sqlForPartialUpdate, sqlForFilterCompanies } = require("../helpers/sql");
 
 /** Related functions for companies. */
 
@@ -67,10 +67,9 @@ class Company {
 
   static async findByFilter({name, minEmployees, maxEmployees}) {
     if (!name && !minEmployees && !maxEmployees) {
-      console.log('Using findAll method');
       return Company.findAll();
     } else{
-      const query = sqlForFilter({name, minEmployees, maxEmployees});
+      const query = sqlForFilterCompanies({name, minEmployees, maxEmployees});
       const companiesRes = await db.query(query);
       return companiesRes.rows;
     }
@@ -98,6 +97,19 @@ class Company {
     const company = companyRes.rows[0];
 
     if (!company) throw new NotFoundError(`No company: ${handle}`);
+    
+    const jobsRes = await db.query(
+      `SELECT id, 
+              title, 
+              salary, 
+              equity, 
+              company_handle AS "companyHandle"
+      FROM jobs
+      RIGHT JOIN companies
+      ON jobs.company_handle = companies.handle
+      WHERE companies.handle = $1`,[company.handle]
+    );
+    company.jobs = jobsRes.rows;
 
     return company;
   }

@@ -27,7 +27,7 @@ function sqlForPartialUpdate(dataToUpdate, jsToSql) {
   WHERE name='Aliya' AND num_employees >= 20 AND num_employees <= 50
   ORDER BY name`
 */
-function sqlForFilter({name, minEmployees, maxEmployees}) {
+function sqlForFilterCompanies({name, minEmployees, maxEmployees}) {
   if (!name && !minEmployees && !maxEmployees) {
     throw new BadRequestError("No data");
   };
@@ -48,4 +48,32 @@ function sqlForFilter({name, minEmployees, maxEmployees}) {
   return query;
 };
 
-module.exports = { sqlForPartialUpdate, sqlForFilter };
+/* Convert the new data object and key mapping to create SQL query string and reference variables
+ ({title: 'new', salary: 1000, equity: 0.5) => 
+ `SELECT id, title, salary, equity, company_handler AS "companyHandler"
+  FROM jobs
+  WHERE title='new' AND salary >= 1000 AND equity > 0
+  ORDER BY title`
+*/
+function sqlForFilterJobs({title, minSalary,hasEquity}) {
+  if (!title && !minSalary && !hasEquity) {
+    throw new BadRequestError("No filter");
+  }
+  let query = `SELECT id, title, salary, equity, company_handle AS "companyHandle" FROM jobs WHERE `;
+  const whereStatements = [];
+  if (title) {
+    whereStatements.push(`title = '${title}'`);
+  };
+  if (minSalary) {
+    whereStatements.push(`salary >= ${minSalary}`);
+  };
+  if (hasEquity) {
+    whereStatements.push(`equity > 0`);
+  };
+  const whereQuery = whereStatements.join(" AND ");
+  query += whereQuery;
+  query += ` ORDER BY title`;
+  return query;
+};
+
+module.exports = { sqlForPartialUpdate, sqlForFilterCompanies, sqlForFilterJobs };
