@@ -43,6 +43,16 @@ router.post("/", ensureAdmin, async function (req, res, next) {
   }
 });
 
+router.post("/:username/jobs/:id", ensureOwner, async function (req, res, next) {
+  try {
+    const { username, id } = req.params;
+    await User.apply(username,id);
+    return res.status(201).json({ applied: +id })
+  } catch(err) {
+    return next(err);
+  };
+});
+
 
 /** GET / => { users: [ {username, firstName, lastName, email }, ... ] }
  *
